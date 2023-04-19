@@ -21,7 +21,6 @@ packages = [
 include = [
     "LICENSE",
     "NOTICE",
-    "",
 ]
 
 [tool.poetry.plugins."mkdocs.plugins"]
