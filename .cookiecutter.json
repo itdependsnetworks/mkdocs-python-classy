@@ -1,0 +1,14 @@
+{
+  "cookiecutter": {
+    "codeowner_github_usernames": "@itdependsnetworks",
+    "description": "Mkdocs plugin to view Python Classes.",
+    "project_name": "Mkdocs Python Classy",
+    "project_slug": "mkdocs-python-classy",
+    "project_python_name": "mkdocs_python_classy",
+    "project_python_base_version": "3.8",
+    "project_with_config_settings": "yes",
+    "generate_docs": "yes",
+    "version": "0.1",
+    "_template": "cookiecutter-ntc/python"
+  }
+}
