@@ -21,8 +21,8 @@ class MkDocsPythonClassyPlugin(BasePlugin):
 
     config_scheme = (
         ("classy_strategy", config_options.Choice(tuple(["subclass", "module"]), default="subclass")),
-        ("classy_subclasses", config_options.ListOfItems(config_options.Type(str))),
-        ("classy_modules", config_options.ListOfItems(config_options.Type(str))),
+        ("classy_subclasses", config_options.ListOfItems(config_options.Type(str), default=[])),
+        ("classy_modules", config_options.ListOfItems(config_options.Type(str), default=[])),
         ("classy_libraries", config_options.ListOfItems(config_options.Type(str))),
     )
     inspector = None
@@ -35,7 +35,7 @@ class MkDocsPythonClassyPlugin(BasePlugin):
                 if first_line.startswith(";;; "):
                     dotted_string = first_line.splitlines()[0][4:]
                     # TODO: verify path is good here
-                    urls[dotted_string] = "/" + page.url
+                    urls[dotted_string] = "/" + re.sub(f'.html$', '.md', page.url)
 
         strategy = self.config["classy_strategy"]
         subclasses = self.config["classy_subclasses"] if strategy == "module" else list(urls.keys())

@@ -20,7 +20,10 @@ def import_string(dotted_path):
 
 def relative_path(dest, source):
     """Get the relative path given a destination and a source."""
-    return os.path.relpath(dest, start=source + "/")
+    if dest.split("#")[0] == source:
+        return "#" + dest.split("#")[1]
+    path = os.path.relpath(dest, start=source)
+    return path
 
 
 def get_url_from_strategy(module_path, subclass_path, urls, strategy, name):
