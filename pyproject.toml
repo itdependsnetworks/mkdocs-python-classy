@@ -27,7 +27,7 @@ include = [
 mkdocs-python-classy = 'mkdocs_python_classy:MkDocsPythonClassyPlugin'
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 mkdocs = "^1.4.0"
 
 [tool.poetry.dev-dependencies]
