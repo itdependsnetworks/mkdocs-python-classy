@@ -54,10 +54,10 @@ An example markdown page would look like:
 classy_dotted_path: django_filters.FilterSet
 ---
 
-## Classy Doc
+# Classy Doc
 ```
 
-> Note: The document must be a valid mkdocs markdown document. This means the yaml must follow the [YAML Style Meta-Data](https://www.mkdocs.org/user-guide/writing-your-docs/#yaml-style-meta-data) and there must be a valid markdown document below that. This markdown will be overwritten, so you can safely always use the `## Classy Doc` as an example.
+> Note: The document must be a valid mkdocs markdown document. This means the yaml must follow the [YAML Style Meta-Data](https://www.mkdocs.org/user-guide/writing-your-docs/#yaml-style-meta-data) and there must be a valid markdown document below that. This markdown will be overwritten, so you can safely always use the `# Classy Doc` as an example.
 
 ## Module Strategy
 
@@ -91,7 +91,7 @@ An example markdown page would look like:
 classy_dotted_path: nautobot.apps.filters
 ---
 
-## Classy Doc
+# Classy Doc
 ```
 
-> Note: The document must be a valid mkdocs markdown document. This means the yaml must follow the [YAML Style Meta-Data](https://www.mkdocs.org/user-guide/writing-your-docs/#yaml-style-meta-data) and there must be a valid markdown document below that. This markdown will be overwritten, so you can safely always use the `## Classy Doc` as an example.
+> Note: The document must be a valid mkdocs markdown document. This means the yaml must follow the [YAML Style Meta-Data](https://www.mkdocs.org/user-guide/writing-your-docs/#yaml-style-meta-data) and there must be a valid markdown document below that. This markdown will be overwritten, so you can safely always use the `# Classy Doc` as an example.
