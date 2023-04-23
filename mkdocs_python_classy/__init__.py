@@ -1,17 +1,25 @@
 """mkdocs-python-classy plugin for MkDocs."""
+
 import re
+import os
+
+from shutil import copy
 from string import Template
+from typing import Optional
 from importlib_metadata import version
 
 from mkdocs.config import config_options
+from mkdocs.config.base import Config
+from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import BasePlugin
-from mkdocs.config import Config
 from mkdocs.structure.files import Files
 from mkdocs.structure.pages import Page
+from mkdocs.structure.nav import Navigation
+from mkdocs.utils.meta import get_data
 
-from mkdocs_python_classy.utils import dotted_path, relative_path
-from mkdocs_python_classy.inspector import InspectorGeneral
-from mkdocs_python_classy.constants import EXTRA_CSS, TEMPLATE_STRING
+from mkdocs_python_classy.utils import get_dotted_path, relative_path
+from mkdocs_python_classy.inspector import Inspector
+from mkdocs_python_classy.constants import TEMPLATE_STRING
 
 __version__ = version(__package__)
 
@@ -27,31 +35,46 @@ class MkDocsPythonClassyPlugin(BasePlugin):
     )
     inspector = None
 
-    def on_nav(self, nav, config, files):
-        urls = {}
-        for page in nav.pages:
-            with open(page.file.abs_src_path) as f:
-                first_line = f.readline()
-                if first_line.startswith(";;; "):
-                    dotted_string = first_line.splitlines()[0][4:]
-                    # TODO: verify path is good here
-                    urls[dotted_string] = "/" + re.sub(f'.html$', '.md', page.url)
+    def on_config(self, config, **kwargs):  # pylint: disable=unused-argument
+        if "markdown_extensions" not in config:
+            config["markdown_extensions"] = []
+        if "pymdownx.tilde" not in config["markdown_extensions"]:
+            config["markdown_extensions"].append("pymdownx.tilde")
+        if "pymdownx.details" not in config["markdown_extensions"]:
+            config["markdown_extensions"].append("pymdownx.details")
+        if "pymdownx.superfences" not in config["markdown_extensions"]:
+            config["markdown_extensions"].append("pymdownx.superfences")
+        config["extra_css"].append("classy.css")
+        return config
 
+    def on_nav(self, nav: Navigation, *, config: MkDocsConfig, files: Files) -> Optional[Navigation]:
+        urls = {}
+        for file in files:
+            if not file.is_documentation_page():
+                continue
+            with open(file.abs_src_path, encoding="utf-8-sig", errors="strict") as the_file:
+                data = get_data(the_file.read())[1]
+                if data.get("classy_dotted_path"):
+                    dotted_string = data["classy_dotted_path"]
+                    if file.page.url:
+                        urls[dotted_string] = "/" + re.sub(".html$", ".md", file.page.url)
         strategy = self.config["classy_strategy"]
         subclasses = self.config["classy_subclasses"] if strategy == "module" else list(urls.keys())
         modules = self.config["classy_modules"] if strategy == "subclass" else list(urls.keys())
-        self.inspector = InspectorGeneral(
+        self.inspector = Inspector(
             self.config["classy_strategy"], subclasses, modules, urls, self.config["classy_libraries"]
         )
         return nav
 
-    def on_page_markdown(self, markdown: str, page: Page, config: Config, files: Files) -> str:
+    def on_page_markdown(self, markdown: str, *, page: Page, config: Config, files: Files) -> str:
         """
         Called on each file after it is read and before it is converted to HTML.
         """
-        if not markdown.startswith(";;;"):
+        with open(page.file.abs_src_path, encoding="utf-8-sig", errors="strict") as the_file:
+            text = the_file.read()
+        if not get_data(text)[1].get("classy_dotted_path"):
             return markdown
-        module = markdown.splitlines()[0][4:]
+        module = get_data(text)[1].get("classy_dotted_path")
 
         output = f"# `{module}` Found Classes"
         render_each = []
@@ -62,13 +85,13 @@ class MkDocsPythonClassyPlugin(BasePlugin):
             output = output + self.get_context(item)
         return output
 
-    def on_page_content(self, html: str, page: Page, config: Config, files: Files) -> str:
+    def on_page_content(self, html: str, *, page: Page, config: Config, files: Files) -> str:
         if re.search("CLASSY_DELIMITER", html):
             html = re.sub("CLASSY_DELIMITER (\\S+)", r'<small class="pull-right">\1</small>', html)
-            html = html + EXTRA_CSS
         return html
 
     def get_context(self, name):
+        """Get all of the relevant data and convert to the final markdown."""
         context = {}
         inspect_obj = self.inspector.klass_details[name]
 
@@ -77,7 +100,7 @@ class MkDocsPythonClassyPlugin(BasePlugin):
 
             for ancestor in ancestors[1:]:
                 name = ancestor.__name__
-                module_path = dotted_path(ancestor)
+                module_path = get_dotted_path(ancestor)
                 if urls.get(module_path):
                     path = relative_path(urls[module_path]["url"], current_url)
                     _out += f"1. [{name}]({path})\n"
@@ -93,7 +116,7 @@ class MkDocsPythonClassyPlugin(BasePlugin):
                 return ""
             _out = f"The below Classes rely on: `{name}`.\n\n"
             for descendant in descendants:
-                module_path = dotted_path(descendant)
+                module_path = get_dotted_path(descendant)
                 _out += f"- [{descendant.__name__}]({relative_path(urls[module_path]['url'], current_url)})\n"
             return _out
 
@@ -143,3 +166,9 @@ class MkDocsPythonClassyPlugin(BasePlugin):
         context["attributes"] = _attributes(inspect_obj.get_attributes())
         context["methods"] = _methods(inspect_obj.get_methods())
         return Template(TEMPLATE_STRING).substitute(**context)
+
+    def on_post_build(self, *, config: MkDocsConfig):  # pylint: disable=unused-argument
+        """Copy the css into where we defined it before."""
+        src = os.path.abspath(os.path.join(os.path.dirname(__file__), "./css/classy.css"))
+        dst = os.path.join(config["site_dir"], "classy.css")
+        copy(src, dst)

@@ -113,4 +113,4 @@ nav:
       - Code Attribution to the Library: "dev/attribution.md"
       - Code Reference:
           - "dev/code_reference/index.md"
-          - ASN: "dev/code_reference/asn.md"
+          - Inspector: "dev/code_reference/inspector.md"

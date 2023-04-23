@@ -1,7 +1,4 @@
-EXTRA_CSS = """<style>
-.pull-right {
-    float: right
-}</style>"""
+"""Module to keep all constants."""
 
 TEMPLATE_STRING = """
 ## `${name}`

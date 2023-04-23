@@ -1,15 +1,28 @@
-import types
+"""Module to handle all inspection related tasks."""
 import collections
-import inspect
-from pygments import lex
-from pygments.lexers import PythonLexer
-from pygments.token import Token
-from mkdocs_python_classy.utils import import_string, dotted_path
 import importlib
+import inspect
+import types
+
+from pygments import lex
+from pygments.lexers import PythonLexer  # pylint: disable=no-name-in-module
+from pygments.token import Token
+
+from mkdocs_python_classy.utils import import_string, get_dotted_path
 
 
-class Attribute(object):
+class Attribute:
+    """Class object to inepct attributes."""
+
     def __init__(self, name, value, classobject, instance_class):
+        """Initialize the Class.
+
+        Args:
+            name (str): The name of the attribute.
+            value (obj): The value of the attribute.
+            classobject (obj): The class where the Attribute came from.
+            instance_class (obj): The class instance where the Attribute came from.
+        """
         self.name = name
         self.value = value
         self.classobject = classobject
@@ -18,21 +31,28 @@ class Attribute(object):
 
     @property
     def repr_value(self):
+        """Convert to repr value which is more human readable."""
         return repr(self.value)
 
     def __eq__(self, obj):
+        """Overwrite equality to ensure that name and value are the same only."""
         return self.name == obj.name and self.value == obj.value
 
     def __neq__(self, obj):
+        """Overwrite inequality to ensure that name and value are the same only."""
         return not self.__eq__(obj)
 
 
 class Method(Attribute):
+    """Class object to inepct methods."""
+
     def __init__(self, *args, **kwargs):
-        super(Method, self).__init__(*args, **kwargs)
+        """Add children to method."""
+        super().__init__(*args, **kwargs)
         self.children = []
 
     def params_string(self):
+        """Get the string value of the parameters."""
         stack = []
         argspec = inspect.getfullargspec(self.value)
         if argspec.varkw:
@@ -43,27 +63,33 @@ class Method(Attribute):
         for arg in argspec.args[::-1]:
             if defaults:
                 default = defaults.pop()
-                stack.insert(0, "{}={}".format(arg, default))
+                stack.insert(0, f"{arg}={default}")
             else:
                 stack.insert(0, arg)
         return ", ".join(stack)
 
     def code(self):
+        """Inspect for the code."""
         return inspect.getsource(self.value)
 
     def line_number(self):
+        """Get the starting line number of the code inspected."""
         return inspect.getsourcelines(self.value)[1]
 
 
 class Attributes(collections.abc.MutableSequence):
-    # Attributes must be added following mro order
+    """Class to ensure attributes are added following mro order."""
+
     def __init__(self):
+        """Initiate class."""
         self.attrs = []
 
     def __getitem__(self, key):
+        """Explicitly get based on key in attrs."""
         return self.attrs[key]
 
     def __setitem__(self, key, value):
+        """Clean and verify before setting."""
         if key < len(self.attrs) or not isinstance(key, int):
             raise ValueError("Can't change value of position")
         if not isinstance(value, Attribute):
@@ -80,33 +106,47 @@ class Attributes(collections.abc.MutableSequence):
         self.attrs.sort(key=lambda x: x.name)
 
     def __delitem__(self, key):
+        """Explicitly based on a key in attrs."""
         del self.attrs[key]
 
     def __len__(self):
+        """Explicitly set length to length of attrs."""
         return len(self.attrs)
 
-    def insert(self, i, x):
-        self.__setitem__(i, x)
+    def insert(self, index, value):
+        """Overwrite the insert method."""
+        self.__setitem__(index, value)  # pylint: disable=unnecessary-dunder-call
 
 
-class Inspector(object):
-    def __init__(self, klasses, dotted):
+class KlassInspector:
+    """Inspector object to inspect a class."""
+
+    def __init__(self, klasses, dotted_path):
+        """Initialize the Class.
+
+        Args:
+            klasses (list): List of classes in dotted_path format.
+            dotted_path (str): The class in questions dotted_path.
+        """
         self.klasses = klasses
-        self.klass_name = dotted.rsplit(".")[0]
-        self.module_name = dotted.rsplit(".")[1]
-        self.dotted = dotted
+        self.klass_name = dotted_path.rsplit(".")[0]
+        self.module_name = dotted_path.rsplit(".")[1]
+        self.dotted_path = dotted_path
 
-        self.module_path = self.klasses[self.dotted]["module_path"]
-        self.subclass_path = self.klasses[self.dotted]["subclass_path"]
-        self.url = self.klasses[self.dotted]["url"]
+        self.module_path = self.klasses[self.dotted_path]["module_path"]
+        self.subclass_path = self.klasses[self.dotted_path]["subclass_path"]
+        self.url = self.klasses[self.dotted_path]["url"]
 
     def get_klass(self):
-        return import_string(self.dotted)
+        """Load the class."""
+        return import_string(self.dotted_path)
 
     def get_page_url(self):
-        return self.klasses[self.dotted]["url"].split("#")[0]
+        """Get the url of the class."""
+        return self.klasses[self.dotted_path]["url"].split("#")[0]
 
     def get_klass_mro(self):
+        """Get the class inheritance order or MRO."""
         ancestors = []
         for ancestor in self.get_klass().mro():
             if ancestor is object:
@@ -115,6 +155,7 @@ class Inspector(object):
         return ancestors
 
     def get_children(self):
+        """Get children."""
         children = []
         for klass in self.klasses:
             klass = import_string(klass)
@@ -126,6 +167,7 @@ class Inspector(object):
         return isinstance(attr, (types.FunctionType, types.MethodType))
 
     def get_attributes(self):
+        """Get the attributes of the class."""
         attrs = Attributes()
 
         for klass in self.get_klass_mro():
@@ -143,6 +185,7 @@ class Inspector(object):
         return attrs
 
     def get_methods(self):
+        """Get the callable methods."""
         attrs = Attributes()
 
         for klass in self.get_klass_mro():
@@ -160,10 +203,13 @@ class Inspector(object):
         return attrs
 
     def get_direct_ancestors(self):
+        """Filter for only the direct ancestors."""
         klass = self.get_klass()
         return klass.__bases__
 
     def get_unavailable_methods(self):
+        """Get the unavailable methods of the class."""
+
         def next_token(tokensource, lookahead, is_looking_ahead):
             for ttype, value in tokensource:
                 while lookahead and not is_looking_ahead:
@@ -176,7 +222,7 @@ class Inspector(object):
             return lookahead_token
 
         not_implemented_methods = []
-        for method in self.get_methods():
+        for method in self.get_methods():  # pylint: disable=too-many-nested-blocks
             lookahead = collections.deque()
             lookback = collections.deque()
             is_looking_ahead = False
@@ -197,12 +243,23 @@ class Inspector(object):
         return set(not_implemented_methods)
 
 
-class InspectorGeneral(object):
-    def __init__(self, strategy, base_classes_str, module_info, urls, libraries):
+class Inspector:  # pylint: disable=too-many-instance-attributes
+    """Inspector Class aggregates all of the relevant KlassInspector instances."""
+
+    def __init__(self, strategy, base_classes_str, module_info, urls, libraries):  # pylint: disable=too-many-arguments
+        """Initialize the Class.
+
+        Args:
+            strategy (list): The type of strategy used in this configuration.
+            base_classes_str (str): The dotted_path of the Class in question.
+            module_info (list): The list of modules to check for the base class from.
+            urls (dict): The urls associated with all of the classes.
+            libraries (list): A list of library paths to be interested in.
+        """
         self.strategy = strategy
         self.base_classes_str = base_classes_str
         self.base_classes = [(i, import_string(i)) for i in base_classes_str]
-        self.base_classes_tuple = tuple([i[1] for i in self.base_classes])
+        self.base_classes_tuple = tuple(i[1] for i in self.base_classes)
         self.modules_str = list(module_info)
         self.urls = urls
         self.libraries = libraries
@@ -211,10 +268,11 @@ class InspectorGeneral(object):
         self.klass_details = {}
         self.klass_short = {}
         for klass in self.klasses:
-            self.klass_details[klass] = Inspector(self.klasses, klass)
-            self.klass_short[klass] = self.klass_details[klass].dotted
+            self.klass_details[klass] = KlassInspector(self.klasses, klass)
+            self.klass_short[klass] = self.klass_details[klass].dotted_path
 
     def get_all_klasses(self):
+        """Dynamically find all classes in scope."""
         for module_str in self.modules_str:
             module = importlib.import_module(module_str)
             for attr_str in dir(module):
@@ -225,9 +283,9 @@ class InspectorGeneral(object):
                     continue
                 for base_class in self.base_classes:
                     if issubclass(attr, (base_class[1])) and not attr_str.startswith("_"):
-                        if any([attr.__module__.startswith(i) for i in self.libraries]):
+                        if any(attr.__module__.startswith(i) for i in self.libraries):
                             url = self.get_url(module_str, base_class[0], attr.__name__)
-                            self.klasses[dotted_path(attr)] = {
+                            self.klasses[get_dotted_path(attr)] = {
                                 "module_path": module_str,
                                 "subclass_path": base_class[0],
                                 "url": url,
@@ -235,8 +293,9 @@ class InspectorGeneral(object):
                         break
 
     def get_url(self, module_str, base_class_str, name):
+        """Toggle the url based on the strategy."""
         if self.strategy == "subclass":
             return self.urls[base_class_str] + f"#{name.lower()}"
-        elif self.strategy == "module":
+        if self.strategy == "module":
             return self.urls[module_str] + f"#{name.lower()}"
         raise ValueError("Strategy not one of ('subclass', 'module').")
