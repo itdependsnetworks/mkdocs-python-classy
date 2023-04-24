@@ -178,7 +178,7 @@ def tests(context, local=INVOKE_LOCAL):
 
 @task
 def clean_container(context):
-    """Remove stopped containers that source for image `netutils:`."""
+    """Remove stopped containers that source for image `mkdocs-python-classy:`."""
     exec_cmd = """docker container rm $(docker container ls -a | grep -E "^\S+\s+mkdocs-python-classy:" | awk 'NR>1 {print $1}')"""  # noqa: W605 # pylint:disable=anomalous-backslash-in-string
     run_cmd(context, exec_cmd, local=True)
 
