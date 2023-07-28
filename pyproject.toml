@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mkdocs-python-classy"
-version = "0.1.0"
+version = "0.1.1"
 description = "Mkdocs plugin to view Python Classes."
 authors = ["Ken Celenza <ken@celenza.org>"]
 license = "Apache"
@@ -30,6 +30,7 @@ mkdocs-python-classy = 'mkdocs_python_classy:MkDocsPythonClassyPlugin'
 python = "^3.8"
 mkdocs = "^1.4.0"
 pymdown-extensions = ">=6.3"
+astunparse = {version = "^1.6.3", python = "<3.9"}
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
