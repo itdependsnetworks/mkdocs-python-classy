@@ -3,6 +3,13 @@ import ast
 import importlib
 import inspect
 import os
+import sys
+
+if sys.version_info < (3, 9):
+    # ast.unparse only supported as of 3.9
+    import astunparse
+
+    ast.unparse = astunparse.unparse
 
 
 def determine_klass_found(attr, elements):
