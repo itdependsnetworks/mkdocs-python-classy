@@ -130,7 +130,7 @@ class MkDocsPythonClassyPlugin(BasePlugin):
                 name = attribute.name
                 if previous_name == attribute.name:
                     name = f"~~{name}~~"
-                _out += f"{name} | `{attribute.repr_value}` | {attribute.classobject.__name__ } |\n"
+                _out += f"{name} | `{attribute.attr_code}` | {attribute.classobject.__name__ } |\n"
                 previous_name = attribute.name
 
             return _out

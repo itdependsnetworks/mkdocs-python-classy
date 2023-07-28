@@ -8,13 +8,13 @@ from pygments import lex
 from pygments.lexers import PythonLexer  # pylint: disable=no-name-in-module
 from pygments.token import Token
 
-from mkdocs_python_classy.utils import import_string, get_dotted_path
+from mkdocs_python_classy.utils import import_string, get_dotted_path, get_attribute_code, is_function_attribute
 
 
 class Attribute:
     """Class object to inepct attributes."""
 
-    def __init__(self, name, value, classobject, instance_class):
+    def __init__(self, name, value, classobject, instance_class, attr_code):  # pylint: disable=too-many-arguments
         """Initialize the Class.
 
         Args:
@@ -22,12 +22,14 @@ class Attribute:
             value (obj): The value of the attribute.
             classobject (obj): The class where the Attribute came from.
             instance_class (obj): The class instance where the Attribute came from.
+            attr_code (str): The code as parsed via ast.
         """
         self.name = name
         self.value = value
         self.classobject = classobject
         self.instance_class = instance_class
         self.dirty = False
+        self.attr_code = attr_code
 
     @property
     def repr_value(self):
@@ -118,7 +120,7 @@ class Attributes(collections.abc.MutableSequence):
         self.__setitem__(index, value)  # pylint: disable=unnecessary-dunder-call
 
 
-class KlassInspector:
+class KlassInspector:  # pylint: disable=too-many-instance-attributes
     """Inspector object to inspect a class."""
 
     def __init__(self, klasses, dotted_path):
@@ -136,6 +138,7 @@ class KlassInspector:
         self.module_path = self.klasses[self.dotted_path]["module_path"]
         self.subclass_path = self.klasses[self.dotted_path]["subclass_path"]
         self.url = self.klasses[self.dotted_path]["url"]
+        self.other_klasses = {}
 
     def get_klass(self):
         """Load the class."""
@@ -152,6 +155,10 @@ class KlassInspector:
             if ancestor is object:
                 break
             ancestors.append(ancestor)
+            if not self.other_klasses.get(get_dotted_path(ancestor)):
+                self.other_klasses[get_dotted_path(ancestor)] = get_attribute_code(
+                    import_string(get_dotted_path(ancestor))
+                )
         return ancestors
 
     def get_children(self):
@@ -169,19 +176,33 @@ class KlassInspector:
     def get_attributes(self):
         """Get the attributes of the class."""
         attrs = Attributes()
+        attr_dict = {}
+        sorted_dict = {}
 
         for klass in self.get_klass_mro():
-            for attr_str in klass.__dict__.keys():
-                attr = getattr(klass, attr_str)
-                if not attr_str.startswith("__") and not self._is_method(attr):
-                    attrs.append(
-                        Attribute(
-                            name=attr_str,
-                            value=attr,
-                            classobject=klass,
-                            instance_class=self.get_klass(),
-                        )
-                    )
+            dotted_path = get_dotted_path(klass)
+            if dotted_path in self.klasses:
+                attr_info = self.klasses[dotted_path]["attr_code"]
+            elif dotted_path in self.other_klasses:
+                attr_info = self.other_klasses[dotted_path]
+
+            for attr_str, code in attr_info.items():
+                val = Attribute(
+                    name=attr_str, value=attr_str, classobject=klass, instance_class=self.get_klass(), attr_code=code
+                )
+                if not val.attr_code:
+                    continue
+                if not sorted_dict.get(attr_str):
+                    sorted_dict[attr_str] = []
+                sorted_dict[attr_str].append(str(klass.__name__))
+                attr_dict[f"{str(klass.__name__)}___{attr_str}"] = val
+        attrs = []
+        # The ordering of the attributes should be printed out in alpha, then mro order.
+        # MRO order is kept with the list of the lists created in `sorted_dict` and we simply
+        # need to sort the keys.
+        for key in sorted(sorted_dict.keys()):
+            for item in sorted_dict[key]:
+                attrs.append(attr_dict[f"{item}___{key}"])
         return attrs
 
     def get_methods(self):
@@ -190,14 +211,25 @@ class KlassInspector:
 
         for klass in self.get_klass_mro():
             for attr_str in klass.__dict__.keys():
-                attr = getattr(klass, attr_str)
-                if not attr_str.startswith("__") and self._is_method(attr):
+                if attr_str.startswith("__") and not attr_str.startswith("__init__"):
+                    continue
+                # Occasionally you will get an attribute that is a assigned to a function
+                # such as `objects = RestrictedQuerySet.as_manager()`, when this happens ensure it did
+                # not fail on a method in which you would re-raise the same issue, otherwise continue on.
+                try:
+                    attr = getattr(klass, attr_str)
+                except Exception:
+                    if not is_function_attribute(klass, attr_str):
+                        continue
+                    raise
+                if self._is_method(attr):
                     attrs.append(
                         Method(
                             name=attr_str,
                             value=attr,
                             classobject=klass,
                             instance_class=self.get_klass(),
+                            attr_code=None,
                         )
                     )
         return attrs
@@ -289,6 +321,7 @@ class Inspector:  # pylint: disable=too-many-instance-attributes
                                 "module_path": module_str,
                                 "subclass_path": base_class[0],
                                 "url": url,
+                                "attr_code": get_attribute_code(import_string(get_dotted_path(attr))),
                             }
                         break
 

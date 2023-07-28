@@ -10,10 +10,10 @@ classifiers = [
     "Intended Audience :: Developers",
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 packages = [
     {include = "mkdocs_python_classy"}
@@ -27,7 +27,7 @@ include = [
 mkdocs-python-classy = 'mkdocs_python_classy:MkDocsPythonClassyPlugin'
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 mkdocs = "^1.4.0"
 pymdown-extensions = ">=6.3"
 
@@ -57,7 +57,7 @@ mkdocstrings-python = "0.7.1"
 
 [tool.black]
 line-length = 120
-target-version = ['py37']
+target-version = ['py311']
 include = '\.pyi?$'
 exclude = '''
 (
