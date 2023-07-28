@@ -665,13 +665,13 @@ files = [
 
 [[package]]
 name = "mkdocstrings"
-version = "0.19.0"
+version = "0.21.0"
 description = "Automatic documentation from sources, for MkDocs."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "mkdocstrings-0.19.0-py3-none-any.whl", hash = "sha256:3217d510d385c961f69385a670b2677e68e07b5fea4a504d86bf54c006c87c7d"},
-    {file = "mkdocstrings-0.19.0.tar.gz", hash = "sha256:efa34a67bad11229d532d89f6836a8a215937548623b64f3698a1df62e01cc3e"},
+    {file = "mkdocstrings-0.21.0-py3-none-any.whl", hash = "sha256:05c52573366f0a32536f7bf0258f2a8ad180836058bb024b252b8a61a25452b3"},
+    {file = "mkdocstrings-0.21.0.tar.gz", hash = "sha256:df7399cec11bdc12ece9a370a6c37bac70ea0a07f479c051d0c82b07a38a3220"},
 ]
 
 [package.dependencies]
@@ -689,18 +689,18 @@ python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
 
 [[package]]
 name = "mkdocstrings-python"
-version = "0.7.1"
+version = "1.1.0"
 description = "A Python handler for mkdocstrings."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "mkdocstrings-python-0.7.1.tar.gz", hash = "sha256:c334b382dca202dfa37071c182418a6df5818356a95d54362a2b24822ca3af71"},
-    {file = "mkdocstrings_python-0.7.1-py3-none-any.whl", hash = "sha256:a22060bfa374697678e9af4e62b020d990dad2711c98f7a9fac5c0345bef93c7"},
+    {file = "mkdocstrings_python-1.1.0-py3-none-any.whl", hash = "sha256:4e9a9d728e6ba742ecbd7379f5091f3a32b16d723881963bb457b2149656e167"},
+    {file = "mkdocstrings_python-1.1.0.tar.gz", hash = "sha256:00cca5e47bf63eb2aece08b9887421b6828bdb939a13a481e4e8b495569e8101"},
 ]
 
 [package.dependencies]
-griffe = ">=0.11.1"
-mkdocstrings = ">=0.19"
+griffe = ">=0.24"
+mkdocstrings = ">=0.20"
 
 [[package]]
 name = "mock"
@@ -1314,4 +1314,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "1275acb23bdb85667a9d73f35a33cf10a523fe142c19511ef2a5affff2c9cb65"
+content-hash = "f07162c0d0ca006a1c343ca5774e4df4110a2ca6d748cf43d86f4793f9e83b4a"
