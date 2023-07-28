@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mkdocs-python-classy"
-version = "0.1"
+version = "0.1.0"
 description = "Mkdocs plugin to view Python Classes."
 authors = ["Ken Celenza <ken@celenza.org>"]
 license = "Apache"
