@@ -2,7 +2,7 @@
 
 <p align="center">
 
-  <img src="docs/images/icon-mkdocs-python-classy.png" class="logo" height="100px">
+  <img src="https://raw.githubusercontent.com/itdependsnetworks/mkdocs-python-classy/develop/docs/images/icon-mkdocs-python-classy.png" class="logo" height="100px">
   <br>
   <!-- <a href="https://github.com/networktocode/mkdocs-python-classy/actions"><img src="https://github.com/networktocode/mkdocs-python-classy/actions/workflows/ci.yml/badge.svg?branch=main"></a> -->
   <a href="/en/latest"><img src="https://readthedocs.org/projects/mkdocs-python-classy/badge/"></a>
@@ -22,15 +22,15 @@ The library works like any other mkdocs plugin.
 
 From here you can see how the MRO is described, links to other Classes covered in the docs, and a convenience Python import config.
 
-![MRO](docs/images/ui-view1.png)
+![MRO](https://raw.githubusercontent.com/itdependsnetworks/mkdocs-python-classy/develop/docs/images/ui-view1.png)
 
 From here you can see the details of the attributes on the class.
 
-![Attributes](docs/images/ui-view2.png)
+![Attributes](https://raw.githubusercontent.com/itdependsnetworks/mkdocs-python-classy/develop/docs/images/ui-view2.png)
 
 From here you can see how the code of the method is shown with line numbers, it is collapsible, and will even show multiple if the method is provided in multiple Classes in the MRO order! Additionally you can see the naviagation pane that is auto generated.
 
-![Methods](docs/images/ui-view3.png)
+![Methods](https://raw.githubusercontent.com/itdependsnetworks/mkdocs-python-classy/develop/docs/images/ui-view3.png)
 
 ## Documentation
 
