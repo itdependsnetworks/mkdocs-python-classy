@@ -4,12 +4,17 @@ import importlib
 import inspect
 import os
 import sys
+import types
 
 if sys.version_info < (3, 9):
     # ast.unparse only supported as of 3.9
     import astunparse
 
-    ast.unparse = astunparse.unparse
+    def _unparse(val):
+        """Required since astunparse has an extra newline compared to ast.unparse."""
+        return astunparse.unparse(val).rstrip()
+
+    ast.unparse = _unparse
 
 
 def determine_klass_found(attr, elements):
@@ -63,23 +68,48 @@ def is_function_attribute(cls, attr_name):
 
 
 def get_attribute_code(cls):
-    """Function to get the actual code of each attribute."""
-    my_dict = {}
+    """Function that gets the actual code via ast of the class attributes."""
+
+    class StopTreeTraversal(Exception):
+        """Custom exception to stop tree traversal."""
+
+    class ClassAttributeVisitor(ast.NodeVisitor):
+        """Overwrite the ast class, to only check the `visit_Assign` method."""
+
+        def __init__(self):
+            """Initialiaze the class and assign variables."""
+            self.class_attributes = {}
+            self.class_members = [name for name, _ in _getmembers_static(cls)]
+
+        def visit_Assign(self, node):  # pylint: disable=invalid-name
+            """Method that we care to overwrite, looking to ensure only looking at assignment on the class."""
+            # Once all of the class attributes have been exhausted, we don't need to
+            # continute with the walk any further
+            if not self.class_members:
+                raise StopTreeTraversal()
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "self"
+                ):
+                    # This is an instance attribute, not a class attribute
+                    pass
+                else:
+                    if isinstance(target, ast.Name) and target.id in self.class_members:
+                        attr_name = target.id
+                        attr_code = ast.unparse(node.value)
+                        self.class_attributes[attr_name] = attr_code
+                        self.class_members.remove(attr_name)
+
     source_code = inspect.getsource(cls)
     tree = ast.parse(source_code)
-    inside_class = False
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            inside_class = True
-        elif isinstance(node, ast.FunctionDef):
-            inside_class = False
-        if inside_class and isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and isinstance(target.ctx, ast.Store):
-                    attr_name = target.id
-                    attr_code = ast.unparse(node.value)
-                    my_dict[attr_name] = attr_code
-    return my_dict
+    try:
+        visitor = ClassAttributeVisitor()
+        visitor.visit(tree)
+    except StopTreeTraversal:
+        pass
+    return visitor.class_attributes
 
 
 def get_dotted_path(obj):
@@ -111,3 +141,47 @@ def verify_in_interesting_library(klass, libraries):
     if any(klass.__module__.startswith(i) for i in libraries):
         return True
     return None
+
+
+def _getmembers_static(object, predicate=None):  # pylint: disable=redefined-builtin,too-many-branches
+    """This is a vendored approach to _getmembers_static that came in py3.11."""
+    if inspect.isclass(object):
+        mro = (object,) + inspect.getmro(object)
+    else:
+        mro = ()
+    results = []
+    processed = set()
+    names = dir(object)
+    # :dd any DynamicClassAttributes to the list of names if object is a class;
+    # this may result in duplicate entries if, for example, a virtual
+    # attribute with the same name as a DynamicClassAttribute exists
+    try:
+        for base in object.__bases__:
+            for key, val in base.__dict__.items():
+                if isinstance(val, types.DynamicClassAttribute):
+                    names.append(key)
+    except AttributeError:
+        pass
+    for key in names:
+        # First try to get the value via getattr.  Some descriptors don't
+        # like calling their __get__ (see bug #1785), so fall back to
+        # looking in the __dict__.
+        try:
+            value = inspect.getattr_static(object, key)
+            # handle the duplicate key
+            if key in processed:
+                raise AttributeError
+        except AttributeError:
+            for base in mro:
+                if key in base.__dict__:
+                    value = base.__dict__[key]
+                    break
+            else:
+                # could be a (currently) missing slot member, or a buggy
+                # __dir__; discard and move on
+                continue
+        if not predicate or predicate(value):
+            results.append((key, value))
+        processed.add(key)
+    results.sort(key=lambda pair: pair[0])
+    return results

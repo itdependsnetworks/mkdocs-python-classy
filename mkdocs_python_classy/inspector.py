@@ -138,7 +138,7 @@ class KlassInspector:  # pylint: disable=too-many-instance-attributes
         self.module_path = self.klasses[self.dotted_path]["module_path"]
         self.subclass_path = self.klasses[self.dotted_path]["subclass_path"]
         self.url = self.klasses[self.dotted_path]["url"]
-        self.other_klasses = {}
+        self.klass_code = {}
 
     def get_klass(self):
         """Load the class."""
@@ -155,8 +155,8 @@ class KlassInspector:  # pylint: disable=too-many-instance-attributes
             if ancestor is object:
                 break
             ancestors.append(ancestor)
-            if not self.other_klasses.get(get_dotted_path(ancestor)):
-                self.other_klasses[get_dotted_path(ancestor)] = get_attribute_code(
+            if not self.klass_code.get(get_dotted_path(ancestor)):
+                self.klass_code[get_dotted_path(ancestor)] = get_attribute_code(
                     import_string(get_dotted_path(ancestor))
                 )
         return ancestors
@@ -180,11 +180,7 @@ class KlassInspector:  # pylint: disable=too-many-instance-attributes
         sorted_dict = {}
 
         for klass in self.get_klass_mro():
-            dotted_path = get_dotted_path(klass)
-            if dotted_path in self.klasses:
-                attr_info = self.klasses[dotted_path]["attr_code"]
-            elif dotted_path in self.other_klasses:
-                attr_info = self.other_klasses[dotted_path]
+            attr_info = self.klass_code[get_dotted_path(klass)]
 
             for attr_str, code in attr_info.items():
                 val = Attribute(
@@ -305,7 +301,7 @@ class Inspector:  # pylint: disable=too-many-instance-attributes
 
     def get_all_klasses(self):
         """Dynamically find all classes in scope."""
-        for module_str in self.modules_str:
+        for module_str in self.modules_str:  # pylint: disable=too-many-nested-blocks
             module = importlib.import_module(module_str)
             for attr_str in dir(module):
                 attr = getattr(module, attr_str)
@@ -317,12 +313,13 @@ class Inspector:  # pylint: disable=too-many-instance-attributes
                     if issubclass(attr, (base_class[1])) and not attr_str.startswith("_"):
                         if any(attr.__module__.startswith(i) for i in self.libraries):
                             url = self.get_url(module_str, base_class[0], attr.__name__)
-                            self.klasses[get_dotted_path(attr)] = {
-                                "module_path": module_str,
-                                "subclass_path": base_class[0],
-                                "url": url,
-                                "attr_code": get_attribute_code(import_string(get_dotted_path(attr))),
-                            }
+                            if not self.klasses.get(get_dotted_path(attr)):
+                                self.klasses[get_dotted_path(attr)] = {
+                                    "module_path": module_str,
+                                    "subclass_path": base_class[0],
+                                    "url": url,
+                                }
+                            # self.klasses_code[get_dotted_path(attr)] = get_attribute_code(import_string(get_dotted_path(attr)))
                         break
 
     def get_url(self, module_str, base_class_str, name):
