@@ -6,7 +6,7 @@ import os
 from shutil import copy
 from string import Template
 from typing import Optional
-from importlib_metadata import version
+from importlib.metadata import version
 
 from mkdocs.config import config_options
 from mkdocs.config.base import Config
