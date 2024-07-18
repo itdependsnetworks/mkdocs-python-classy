@@ -98,6 +98,7 @@ nav:
       - Library Overview: "user/lib_overview.md"
       - Using the Library: "user/lib_use_cases.md"
       - Getting Started: "user/lib_getting_started.md"
+      - MkDocs Configurations: "user/lib_mkdocs_configurations.md"
       - Frequently Asked Questions: "user/faq.md"
   - Administrator Guide:
       - Install and Configure: "admin/install.md"
